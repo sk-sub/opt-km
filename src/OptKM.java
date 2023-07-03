@@ -45,13 +45,15 @@ public class OptKM<T1, T2> {
             _Q_u.put(u, pq);
         }
 
+        S = new HashSet<>();
+        N_S = new HashSet<>();
+
+
         while (M.size() < m) {
 //            System.out.println("M size " + M.size());
 
             T1 u = null;
             T2 v = null;
-            S = new HashSet<>();
-            N_S = new HashSet<>();
 
             boolean found = false;
 
@@ -60,9 +62,9 @@ public class OptKM<T1, T2> {
                 u = unmarkedFreeU.iterator().next();
                 unmarkedFreeU.remove(u);
                 found = findAugmentPath(u);
-
             }
             if (found) {            // 根据增广路更新 M
+
                 for (T1 ru: augPath.keySet()) {
                     T2 rv = M.get(ru);
                     if (rv != null) {
@@ -70,6 +72,8 @@ public class OptKM<T1, T2> {
                     }
                 }
                 for (T1 nu: augPath.keySet()) {
+                    S.add(nu);
+                    N_S.add(augPath.get(nu));
                     addMatch(nu, augPath.get(nu));
                 }
                 System.out.printf("Found new path, total %d\n", M.size());
@@ -83,7 +87,7 @@ public class OptKM<T1, T2> {
 
     /** Algorithm 2 */
     private boolean findAugmentPath(T1 u) {
-        System.out.println("findAugmentPath");
+//        System.out.println("findAugmentPath" + " " + u);
 
         augPath = new HashMap<>();
 
@@ -91,9 +95,13 @@ public class OptKM<T1, T2> {
 
         Queue<T1> PQ = new ArrayDeque<>();
         PQ.add(u);
+
+        S = new HashSet<>();
+        N_S = new HashSet<>();
+
         while (PQ.size() > 0) {
             T1 x = PQ.poll();
-            S.add(x);               // TODO 是否到了这一步就算被访问过？
+            S.add(x);
             for (T2 v : adj_u_v.get(x)) {
                 if (c(x, v) == null && LB_r(x, v) <= 0) {
                     Set<PQWrapper<T2>> E = new HashSet<>();
@@ -111,9 +119,11 @@ public class OptKM<T1, T2> {
                     Q_u(u).addAll(E);        // Re-insert all 𝑒 ∈ 𝐸 back to 𝑄𝑥 by 𝐿𝐵(𝑥, 𝑒)
                 }
 
-                if (!N_S.add(v) && c(x, v) != null && c_r(x, v) == 0) {
-                    N_S.add(v);             // TODO 是否到了这一步才算被访问过？
+                if (c(x, v) != null && c_r(x, v) == 0) {
 
+                    N_S.add(v);
+
+//                    System.out.println("Found one");
                     if (freeV.contains(v)) {
                         augPath.put(x, v);
                         return true;
@@ -121,7 +131,7 @@ public class OptKM<T1, T2> {
                         T1 origU = revM.get(v);
                         augPath.put(x, v);
                         PQ.add(origU);                  // TODO 感觉这个地方造成了死循环，同一个 u 被反复地加入到 PQ 里
-                        System.out.printf("Add %s back to PQ\n", origU);
+//                        System.out.printf("Add %s back to PQ\n", origU);
                     }
                 }
             }
@@ -133,6 +143,7 @@ public class OptKM<T1, T2> {
     private void updateLabels() {
         System.out.println("updateLabels");
         double _delta = delta();        // TODO delta 和 delta_cand 是什么关系
+        System.out.println("delta=" + _delta);
         double delta_cand = _delta;
         for (T1 u : S) {
             Set<PQWrapper<T2>> E = new HashSet<>();
@@ -144,6 +155,7 @@ public class OptKM<T1, T2> {
                     if (_LB_r_u_e < delta_cand) {
                         computeCost(u, e);
                         if (c_r(u, e) < delta_cand) {
+                            System.out.println("update delta");
                             delta_cand = c_r(u, e);
                         }
                     } else {
@@ -179,6 +191,8 @@ public class OptKM<T1, T2> {
     }
 
     private double LB_Q_u(T1 u) {       // TODO 当 Q_u 为空时怎么办
+        if (Q_u(u).size() == 0)
+            return 0;
         return Q_u(u).peek().cost;
     }
 
